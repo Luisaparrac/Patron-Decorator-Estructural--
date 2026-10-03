@@ -1,5 +1,6 @@
 const TicketComponent = require("./TicketComponent");
 
+// Componente concreto: la tarifa básica solo incluye un artículo personal y aborda en el grupo C.
 class BasicTicket extends TicketComponent {
   constructor(flight) {
     super();
@@ -9,9 +10,17 @@ class BasicTicket extends TicketComponent {
   getPrice() { return this.flight.price; }
 
   getDescription() {
-    return `Basic Ticket - ${this.flight.origin} → ${this.flight.destination}`;
+    return `Tarifa Básica ${this.flight.originCode} → ${this.flight.destinationCode}`;
   }
 
-  getServices() { return ["Personal item"]; }
+  getServices() {
+    return [{ code: "basic", label: "Tarifa básica + artículo personal", price: this.flight.price }];
+  }
+
+  getLayers() { return ["BasicTicket"]; }
+  getSeat() { return null; }
+  getBoardingGroup() { return "C"; }
+  hasService() { return false; }
 }
+
 module.exports = BasicTicket;

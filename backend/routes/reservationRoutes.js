@@ -1,57 +1,27 @@
 const express = require("express");
+const { listFlights, quote, reserve } = require("../services/reservationService");
+const { listServices } = require("../patterns/factory/serviceCatalog");
+
 const router = express.Router();
 
-const BasicTicket = require("../patterns/decorator/BasicTicket");
-const CheckedBaggageDecorator = require("../patterns/decorator/CheckedBaggageDecorator");
-const CarryOnDecorator = require("../patterns/decorator/CarryOnDecorator");
-const SeatDecorator = require("../patterns/decorator/SeatDecorator");
-const PriorityBoardingDecorator = require("../patterns/decorator/PriorityBoardingDecorator");
-
-const flights = [
-  { id: "LC101", origin: "Bogota", destination: "Medellin", date: "Oct 15, 2026", time: "07:30", duration: "1h 05m", price: 180000 },
-  { id: "LC202", origin: "Bogota", destination: "Cartagena", date: "Oct 16, 2026", time: "10:15", duration: "1h 25m", price: 220000 },
-  { id: "LC303", origin: "Cali", destination: "Bogota", date: "Oct 17, 2026", time: "14:40", duration: "1h 10m", price: 165000 }
-];
-
-router.get("/flights", (req, res) => res.json(flights));
-
-function buildTicket(flight, services) {
-  let ticket = new BasicTicket(flight);
-  if (services.includes("checked")) ticket = new CheckedBaggageDecorator(ticket);
-  if (services.includes("carryon")) ticket = new CarryOnDecorator(ticket);
-  if (services.includes("seat")) ticket = new SeatDecorator(ticket);
-  if (services.includes("priority")) ticket = new PriorityBoardingDecorator(ticket);
-  return ticket;
+function handle(action, successStatus = 200) {
+  return (req, res) => {
+    try {
+      res.status(successStatus).json(action(req.body));
+    } catch (error) {
+      if (!error.status) console.error(error);
+      res.status(error.status || 500).json({
+        error: error.status ? error.message : "Error interno del servidor.",
+        ...error.details
+      });
+    }
+  };
 }
 
-router.post("/reservations", (req, res) => {
-  const { flightId, name, email, services = [] } = req.body;
-
-  if (!flightId || !name || !email) {
-    return res.status(400).json({ error: "Flight, name and email are required." });
-  }
-
-  const valid = ["checked", "carryon", "seat", "priority"];
-  if (!Array.isArray(services) || services.some(s => !valid.includes(s))) {
-    return res.status(400).json({ error: "Invalid service selection." });
-  }
-
-  const flight = flights.find(f => f.id === flightId);
-  if (!flight) return res.status(404).json({ error: "Flight not found." });
-
-  const ticket = buildTicket(flight, [...new Set(services)]);
-
-  res.status(201).json({
-    code: "LC-" + Math.random().toString(36).slice(2, 8).toUpperCase(),
-    passenger: { name, email },
-    flight: `${flight.origin} → ${flight.destination}`,
-    date: flight.date,
-    time: flight.time,
-    description: ticket.getDescription(),
-    services: ticket.getServices(),
-    basePrice: flight.price,
-    finalPrice: ticket.getPrice()
-  });
-});
+router.get("/flights", (req, res) => res.json(listFlights()));
+router.get("/services", (req, res) => res.json(listServices()));
+router.post("/quote", handle(quote));
+router.post("/reservations", handle(reserve, 201));
+router.use((req, res) => res.status(404).json({ error: "Ruta de la API no encontrada." }));
 
 module.exports = router;

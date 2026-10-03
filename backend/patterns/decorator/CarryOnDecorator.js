@@ -1,9 +1,18 @@
 const TicketDecorator = require("./TicketDecorator");
 
 class CarryOnDecorator extends TicketDecorator {
-  constructor(ticket) { super(ticket); this.cost = 40000; }
-  getPrice() { return super.getPrice() + this.cost; }
-  getDescription() { return super.getDescription() + " + Carry-on Baggage"; }
-  getServices() { return [...super.getServices(), "Carry-on Baggage"]; }
+  static CODE = "carryon";
+  static LABEL = "Equipaje de cabina 10 kg";
+  static PRICE = 40000;
+
+  constructor(ticket) { super(ticket, CarryOnDecorator.CODE); }
+
+  getPrice() { return super.getPrice() + CarryOnDecorator.PRICE; }
+  getDescription() { return `${super.getDescription()} + ${CarryOnDecorator.LABEL}`; }
+
+  getServices() {
+    return [...super.getServices(), { code: this.code, label: CarryOnDecorator.LABEL, price: CarryOnDecorator.PRICE }];
+  }
 }
+
 module.exports = CarryOnDecorator;
